@@ -1,6 +1,7 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { Icon } from "../utilities/utilities";
 import { login } from "../../apis/AuthApis";
+import { useSEO } from "../seo";
 
 export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
@@ -8,6 +9,14 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setSEO } = useSEO();
+
+  useEffect(() => {
+    setSEO({
+      title: "Admin Login",
+      description: "Secure admin login for TrueFin installment tracking system. Manage borrowers, loans, and collections.",
+    });
+  }, [setSEO]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

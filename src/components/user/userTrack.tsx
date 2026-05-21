@@ -4,6 +4,7 @@ import SummaryCards from "./comp/SummaryCards";
 import ProgressBar from "./comp/ProgressBar";
 import InstallmentTable from "./comp/InstallmentTable";
 import { getTrackByUniqueId, UserTrackResponse } from "../../apis/UserApis";
+import { useSEO } from "../seo";
 
 export default function UserTrack() {
   const { uniqueId } = useParams();
@@ -11,6 +12,7 @@ export default function UserTrack() {
   const [data, setData] = useState<UserTrackResponse | null>(location.state ?? null);
   const [loading, setLoading] = useState(!location.state);
   const [error, setError] = useState("");
+  const { setSEO } = useSEO();
 
   useEffect(() => {
     if (!uniqueId || data) return;
@@ -29,7 +31,15 @@ export default function UserTrack() {
 
     fetchData();
   }, [data, uniqueId]);
-  console.log(data)
+
+  useEffect(() => {
+    if (data) {
+      setSEO({
+        title: `${data.name} - Loan Tracking | TrueFin`,
+        description: `View installment history for ${data.name}. Paid: ₹${data.summary.totalPaid || 0}. Outstanding: ₹${data.lastLeft || 0}.`,
+      });
+    }
+  }, [data, setSEO]);
 
   if (loading) return <div className="user-loading">Loading...</div>;
   if (error || !data) return <div className="user-error-block">{error || "No tracking data found."}</div>;

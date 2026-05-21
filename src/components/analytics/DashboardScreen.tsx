@@ -3,6 +3,7 @@ import { getDashboardStats, getCollections, DashboardStats, Collection } from ".
 import { getBorrowers, Borrower } from "../../apis/BorrowerApis";
 import { Icon } from "../utilities/utilities";
 import { DataTable } from "../borrower/DataTable";
+import { useSEO } from "../seo";
 
 function Metric({
   icon,

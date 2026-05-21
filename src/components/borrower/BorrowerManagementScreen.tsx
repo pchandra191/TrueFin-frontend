@@ -3,6 +3,7 @@ import { getBorrowers, Borrower } from "../../apis/BorrowerApis";
 import { Icon } from "../utilities/utilities";
 import { DataTable } from "./DataTable";
 import { BorrowerDrawer } from "./BorrowerDrawer";
+import { useSEO } from "../seo";
 
 // City map — update cityId values to match your data
 const CITIES = [
@@ -32,6 +33,7 @@ export function BorrowerManagementScreen({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState("");
+  const { setSEO } = useSEO();
 
   async function fetchBorrowers(updatedBorrower?: Borrower) {
     setLoading(true);
@@ -71,7 +73,20 @@ export function BorrowerManagementScreen({
   function handleSelectBorrower(borrower: Borrower) {
     setSelectedBorrower(borrower);
     if (!drawerOpen) onDrawerToggle();
+    setSEO({
+      title: `${borrower.name} - Loan Details`,
+      description: `View installment history and payment status for ${borrower.name}. Total paid: ₹${borrower.installments.reduce((sum, i) => sum + (i.status === 'paid' ? i.amount : 0), 0).toLocaleString()}.`,
+    });
   }
+
+  useEffect(() => {
+    if (selectedBorrower) {
+      setSEO({
+        title: `${selectedBorrower.name} - Loan Details | TrueFin`,
+        description: `View installment history and payment status for ${selectedBorrower.name}. Track payments and manage loan details.`,
+      });
+    }
+  }, [selectedBorrower, setSEO]);
 
   return (
     <>

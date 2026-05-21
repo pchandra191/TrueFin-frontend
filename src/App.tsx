@@ -5,12 +5,21 @@ import { BorrowerManagementScreen } from "./components/borrower/BorrowerManageme
 import { DashboardScreen } from "./components/analytics/DashboardScreen";
 import { AddBorrowerScreen } from "./components/borrower/AddNewBorrower";
 import { getMe, logout } from "./apis/AuthApis";
+import { useSEO } from "./components/seo";
+
+const SCREEN_SEO: Record<Screen, { title: string; description: string }> = {
+  login: { title: "Login", description: "Secure admin login for TrueFin installment tracking system." },
+  dashboard: { title: "Dashboard", description: "View installment analytics, borrower statistics, and collection trends." },
+  borrowers: { title: "Borrowers", description: "Manage borrower records, installment history, and payment tracking." },
+  add: { title: "Add New Loan", description: "Create new borrower records and loan installment plans." },
+};
 
 function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [adminName, setAdminName] = useState("Admin User");
   const [authChecked, setAuthChecked] = useState(false);
+  const { setSEO } = useSEO();
 
   useEffect(() => {
     const token = localStorage.getItem("trufin_token");
@@ -28,6 +37,17 @@ function App() {
       setAuthChecked(true);
     }
   }, []);
+
+  useEffect(() => {
+    const seo = SCREEN_SEO[screen];
+    if (seo) {
+      setSEO({
+        title: seo.title,
+        description: seo.description,
+        keywords: `TrueFin, ${seo.title.toLowerCase()}, microfinance, loan management`,
+      });
+    }
+  }, [screen, setSEO]);
 
   if (!authChecked) return null;
 

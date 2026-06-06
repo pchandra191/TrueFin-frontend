@@ -1,35 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import SummaryCards from "./comp/SummaryCards";
 import ProgressBar from "./comp/ProgressBar";
 import InstallmentTable from "./comp/InstallmentTable";
 import { getTrackByUniqueId, UserTrackResponse } from "../../apis/UserApis";
+import { LoadingSpinner } from "../utilities/utilities";
 import { useSEO } from "../seo";
+
+function getCached<T>(key: string): T | null {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as { data: T; timestamp: number };
+    if (Date.now() - parsed.timestamp > 10 * 60 * 1000) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
 
 export default function UserTrack() {
   const { uniqueId } = useParams();
   const location = useLocation();
-  const [data, setData] = useState<UserTrackResponse | null>(location.state ?? null);
-  const [loading, setLoading] = useState(!location.state);
+  
+  // Initialize from cache synchronously
+  const [data, setData] = useState<UserTrackResponse | null>(() => {
+    if (location.state) return location.state;
+    if (!uniqueId) return null;
+    const cacheKey = `tf_cache_med_track_${uniqueId}`;
+    return getCached<UserTrackResponse>(cacheKey);
+  });
+  
+  const [loading, setLoading] = useState(data === null);
   const [error, setError] = useState("");
   const { setSEO } = useSEO();
 
   useEffect(() => {
     if (!uniqueId || data) return;
 
-    async function fetchData() {
-      if (!uniqueId) return;
-      try {
-        const payload = await getTrackByUniqueId(uniqueId);
-        setData(payload);
-      } catch (err: any) {
-        setError(err.message || "Unable to load tracking details.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
+    getTrackByUniqueId(uniqueId)
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, [data, uniqueId]);
 
   useEffect(() => {
@@ -41,7 +53,7 @@ export default function UserTrack() {
     }
   }, [data, setSEO]);
 
-  if (loading) return <div className="user-loading">Loading...</div>;
+  if (loading) return <LoadingSpinner message="Loading your loan details..." />;
   if (error || !data) return <div className="user-error-block">{error || "No tracking data found."}</div>;
 
   const extractAmount = (value?: string | number) => {
@@ -59,16 +71,19 @@ export default function UserTrack() {
   const baseOutstanding = installmentConditionAmount ?? extractAmount(data.lastLeft);
   const computedOutstanding = Math.max(0, baseOutstanding - totalPaid);
   const installmentPerMonth = data.IPM?.[0] ?? 0;
-  const totalUpcomingInstallment = (data.installments.filter((installment) => installment.status?.toLowerCase() === "pending")).length;
-  
-  console.log(totalUpcomingInstallment)
-  const enrichedSummary = {
+
+  const totalUpcomingInstallment = useMemo(
+    () => data.installments.filter((installment) => installment.status?.toLowerCase() === "pending").length,
+    [data.installments]
+  );
+
+  const enrichedSummary = useMemo(() => ({
     ...data.summary,
     totalPaid,
     outstanding: computedOutstanding,
     installmentPerMonth,
     totalUpcomingInstallment,
-  };
+  }), [data.summary, totalPaid, computedOutstanding, installmentPerMonth, totalUpcomingInstallment]);
 
   const totalAmount = Math.max(1, totalPaid + computedOutstanding);
   const progress = (totalPaid / totalAmount) * 100;

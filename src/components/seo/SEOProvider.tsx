@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, memo } from "react";
 
 export interface SEOConfig {
   title?: string;

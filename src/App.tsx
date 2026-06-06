@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { AdminShell, type Screen } from "./components/utilities/utilities";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { BorrowerManagementScreen } from "./components/borrower/BorrowerManagementScreen";
 import { DashboardScreen } from "./components/analytics/DashboardScreen";
 import { AddBorrowerScreen } from "./components/borrower/AddNewBorrower";
+import { LoadingSpinner } from "./components/utilities/utilities";
 import { getMe, logout } from "./apis/AuthApis";
 import { useSEO } from "./components/seo";
 
@@ -49,48 +50,56 @@ function App() {
     }
   }, [screen, setSEO]);
 
-  if (!authChecked) return null;
+  const handleLogin = useCallback(() => {
+    getMe().then((me) => setAdminName(me.name || me.email || "Admin User")).catch(() => {});
+    setScreen("dashboard");
+  }, []);
+
+  const handleNavigate = useCallback((next: Screen) => setScreen(next), []);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    setAdminName("Admin User");
+    setScreen("login");
+  }, []);
+
+  const handleAddLoan = useCallback(() => setScreen("add"), []);
+
+  const handleDrawerToggle = useCallback(() => setDrawerOpen((open) => !open), []);
+
+  const handleCancelAdd = useCallback(() => setScreen("borrowers"), []);
+
+  const handleSuccessAdd = useCallback(() => setScreen("borrowers"), []);
+
+  if (!authChecked) return <LoadingSpinner message="Verifying session..." />;
 
   if (screen === "login") {
-    return (
-      <LoginScreen
-        onLogin={() => {
-          getMe().then((me) => setAdminName(me.name || me.email || "Admin User")).catch(() => {});
-          setScreen("dashboard");
-        }}
-      />
-    );
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
     <AdminShell
       activeScreen={screen}
-      onNavigate={(next) => setScreen(next)}
+      onNavigate={handleNavigate}
       adminName={adminName}
-      onLogout={() => {
-        logout();
-        setAdminName("Admin User");
-        setScreen("login");
-      }}
+      onLogout={handleLogout}
     >
-      {screen === "dashboard" && (
-        <DashboardScreen onAddLoan={() => setScreen("add")} />
-      )}
+      {screen === "dashboard" && <DashboardScreen onAddLoan={handleAddLoan} />}
       {screen === "borrowers" && (
         <BorrowerManagementScreen
           drawerOpen={drawerOpen}
-          onDrawerToggle={() => setDrawerOpen((open) => !open)}
-          onAddBorrower={() => setScreen("add")}
+          onDrawerToggle={handleDrawerToggle}
+          onAddBorrower={handleAddLoan}
         />
       )}
       {screen === "add" && (
         <AddBorrowerScreen
-          onCancel={() => setScreen("borrowers")}
-          onSuccess={() => setScreen("borrowers")}
+          onCancel={handleCancelAdd}
+          onSuccess={handleSuccessAdd}
         />
       )}
     </AdminShell>
   );
 }
 
-export default App;
+export default memo(App);

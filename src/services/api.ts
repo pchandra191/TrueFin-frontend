@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import axios, { type AxiosInstance } from "axios";
+import { clearExpiredCache } from "./cacheService";
 
 const api: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
@@ -9,6 +10,9 @@ const api: AxiosInstance = axios.create({
   },
 });
 
+// Clear expired cache on module load
+clearExpiredCache();
+
 // ---- Request Interceptor ----
 api.interceptors.request.use(
   (config) => {
@@ -16,11 +20,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log("[API]", config.method?.toUpperCase(), config.url);
     return config;
   },
   (error) => {
-    console.error("[API] Request error:", error);
     return Promise.reject(error);
   }
 );
@@ -28,12 +30,10 @@ api.interceptors.request.use(
 // ---- Response Interceptor ----
 api.interceptors.response.use(
   (response) => {
-    console.log("[API]", response.status, response.config.url);
     return response;
   },
   (error) => {
     if (error.code === "ECONNABORTED" || !error.response) {
-      console.error("[API] Network error – no response from server");
       return Promise.reject(new Error("Network error. Please check your connection."));
     }
 
@@ -50,7 +50,6 @@ api.interceptors.response.use(
     }
 
     if (error.response.status >= 500) {
-      console.error("[API] Server error:", error.response.status);
       return Promise.reject(new Error("Server error. Please try again later."));
     }
 

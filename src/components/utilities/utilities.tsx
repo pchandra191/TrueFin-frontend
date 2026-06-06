@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,7 +8,7 @@ export type BorrowerStatus = "Approved" | "Pending" | "Delayed" | "Active" | "De
 
 // ─── Icon ─────────────────────────────────────────────────────────────────────
 
-export function Icon({ name, filled = false }: { name: string; filled?: boolean }) {
+export const Icon = memo(function Icon({ name, filled = false }: { name: string; filled?: boolean }) {
   return (
     <span
       className="material-symbols-outlined"
@@ -21,11 +21,27 @@ export function Icon({ name, filled = false }: { name: string; filled?: boolean 
       {name}
     </span>
   );
+});
+Icon.displayName = "Icon";
+
+// ─── Loading Spinner ──────────────────────────────────────────────────────────
+
+export function LoadingSpinner({ message = "Loading..." }: { message?: string }) {
+  return (
+    <div className="loading-overlay">
+      <div className="loading-content">
+        <svg className="spinner" viewBox="0 0 50 50">
+          <circle cx="25" cy="25" r="20" />
+        </svg>
+        <span className="loading-message">{message}</span>
+      </div>
+    </div>
+  );
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-export function Status({ status }: { status: BorrowerStatus }) {
+export const Status = memo(function Status({ status }: { status: BorrowerStatus }) {
   const tone =
     status === "Defaulter" || status === "Delayed"
       ? "danger"
@@ -40,7 +56,7 @@ export function Status({ status }: { status: BorrowerStatus }) {
       {status}
     </span>
   );
-}
+});
 
 // ─── AdminShell ───────────────────────────────────────────────────────────────
 

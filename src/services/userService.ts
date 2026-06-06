@@ -1,4 +1,8 @@
 import api from "./api";
+import {
+  cachedApiCall,
+  CACHE_DURATIONS,
+} from "./cacheService";
 
 function unwrap<T>(res: { data: T }): T {
   return res.data;
@@ -37,7 +41,13 @@ export function trackLogin(uniqueId: string): Promise<UserTrackResponse> {
 export function getTrackByUniqueId(
   uniqueId: string
 ): Promise<UserTrackResponse> {
-  return api
-    .get(`/api/track/${encodeURIComponent(uniqueId)}`)
-    .then(unwrap);
+  const cacheKey = `tf_cache_med_track_${uniqueId}`;
+  return cachedApiCall(
+    cacheKey,
+    () =>
+      api
+        .get(`/api/track/${encodeURIComponent(uniqueId)}`)
+        .then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }

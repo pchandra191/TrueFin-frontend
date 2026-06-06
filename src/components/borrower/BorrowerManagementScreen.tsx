@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { getBorrowers, Borrower } from "../../apis/BorrowerApis";
 import { Icon } from "../utilities/utilities";
 import { DataTable } from "./DataTable";
 import { BorrowerDrawer } from "./BorrowerDrawer";
 import { useSEO } from "../seo";
 
-// City map — update cityId values to match your data
 const CITIES = [
   { id: 1, name: "Shahjahanpur" },
   { id: 2, name: "Bareilly" },
@@ -16,6 +15,39 @@ const CITIES = [
   { id: 7, name: "Moradabad" },
 ];
 
+const CitySelect = memo(({ value, onChange }: { value: number; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) => {
+  const cityOptions = useMemo(() =>
+    CITIES.map((city) => (
+      <option key={city.id} value={city.id}>
+        {city.name}
+      </option>
+    )),
+  []);
+
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)" }}
+    >
+      {cityOptions}
+    </select>
+  );
+});
+CitySelect.displayName = "CitySelect";
+
+function getCached<T>(key: string): T | null {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as { data: T; timestamp: number };
+    if (Date.now() - parsed.timestamp > 10 * 60 * 1000) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
 export function BorrowerManagementScreen({
   drawerOpen,
   onDrawerToggle,
@@ -25,8 +57,7 @@ export function BorrowerManagementScreen({
   onDrawerToggle: () => void;
   onAddBorrower: () => void;
 }) {
-  const [borrowers, setBorrowers] = useState<Borrower[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCityId, setSelectedCityId] = useState(CITIES[0].id);
   const [selectedBorrower, setSelectedBorrower] = useState<Borrower | null>(null);
@@ -35,49 +66,38 @@ export function BorrowerManagementScreen({
   const [error, setError] = useState("");
   const { setSEO } = useSEO();
 
-  async function fetchBorrowers(updatedBorrower?: Borrower) {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await getBorrowers({
-        cityId: selectedCityId,
-        search: search || undefined,
-        page,
-        limit: 50,
-      });
-      setBorrowers(res.borrowers);
-      setTotalPages(res.pagination.pages);
-      if (updatedBorrower) {
-        setSelectedBorrower(updatedBorrower);
-      } else if (selectedBorrower) {
-        const refreshed = res.borrowers.find((b) => b.uniqueId === selectedBorrower.uniqueId);
-        if (refreshed) setSelectedBorrower(refreshed);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to load borrowers");
-    } finally {
-      setLoading(false);
+  // Initialize from cache immediately
+  const [borrowers, setBorrowers] = useState<Borrower[]>(() => {
+    const cacheKey = `tf_cache_med_borrowers_${selectedCityId}_${search}_${page}_50`;
+    const cached = getCached<BorrowersResponse>(cacheKey);
+    return cached?.borrowers || [];
+  });
+
+  useEffect(() => {
+    const cached = getCached<BorrowersResponse>(`tf_cache_med_borrowers_${selectedCityId}_${search}_${page}_50`);
+    if (cached) {
+      setBorrowers(cached.borrowers);
+      setTotalPages(cached.pagination?.pages || 1);
+      return;
     }
-  }
+    setLoading(true);
+    getBorrowers({ cityId: selectedCityId, search: search || undefined, page, limit: 50 })
+      .then(res => {
+        setBorrowers(res.borrowers);
+        setTotalPages(res.pagination.pages);
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [selectedCityId, search, page]);
 
-  useEffect(() => {
-    fetchBorrowers();
-  }, [selectedCityId, page]);
-
-  // debounce search
-  useEffect(() => {
-    const t = setTimeout(() => fetchBorrowers(), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  function handleSelectBorrower(borrower: Borrower) {
+  const handleSelectBorrower = useCallback((borrower: Borrower) => {
     setSelectedBorrower(borrower);
     if (!drawerOpen) onDrawerToggle();
     setSEO({
       title: `${borrower.name} - Loan Details`,
       description: `View installment history and payment status for ${borrower.name}. Total paid: ₹${borrower.installments.reduce((sum, i) => sum + (i.status === 'paid' ? i.amount : 0), 0).toLocaleString()}.`,
     });
-  }
+  }, [drawerOpen, onDrawerToggle, setSEO]);
 
   useEffect(() => {
     if (selectedBorrower) {
@@ -87,6 +107,19 @@ export function BorrowerManagementScreen({
       });
     }
   }, [selectedBorrower, setSEO]);
+
+  const handleCityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCityId(Number(e.target.value));
+    setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  }, []);
+
+  const handlePrevPage = useCallback(() => setPage((p) => p - 1), []);
+  const handleNextPage = useCallback(() => setPage((p) => p + 1), []);
 
   return (
     <>
@@ -103,24 +136,14 @@ export function BorrowerManagementScreen({
 
         {/* Filters */}
         <div className="filters-row" style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-          <select
-            value={selectedCityId}
-            onChange={(e) => { setSelectedCityId(Number(e.target.value)); setPage(1); }}
-            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)" }}
-          >
-            {CITIES.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
-              </option>
-            ))}
-          </select>
+          <CitySelect value={selectedCityId} onChange={handleCityChange} />
 
           <div className="search" style={{ flex: 1 }}>
             <Icon name="search" />
             <input
               placeholder="Search borrowers by name..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={handleSearchChange}
             />
           </div>
         </div>
@@ -129,7 +152,7 @@ export function BorrowerManagementScreen({
 
         <DataTable
           rows={borrowers}
-          loading={loading}
+          loading={loading && borrowers.length === 0}
           onSelect={handleSelectBorrower}
         />
 
@@ -141,14 +164,14 @@ export function BorrowerManagementScreen({
               <button
                 className="icon-button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={handlePrevPage}
               >
                 <Icon name="chevron_left" />
               </button>
               <button
                 className="icon-button"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={handleNextPage}
               >
                 <Icon name="chevron_right" />
               </button>
@@ -161,10 +184,15 @@ export function BorrowerManagementScreen({
         borrower={selectedBorrower}
         open={drawerOpen && !!selectedBorrower}
         onClose={onDrawerToggle}
-        onUpdate={fetchBorrowers}
+        onUpdate={() => getBorrowers({ cityId: selectedCityId, search: search || undefined, page, limit: 50 }).then(r => setBorrowers(r.borrowers))}
       />
     </>
   );
 }
 
-export default BorrowerManagementScreen;
+interface BorrowersResponse {
+  borrowers: Borrower[];
+  pagination: { pages: number };
+}
+
+export default memo(BorrowerManagementScreen);

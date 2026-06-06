@@ -4,6 +4,15 @@ import type {
   Borrower,
   Installment,
 } from "../types/borrower";
+import {
+  cachedApiCall,
+  CACHE_DURATIONS,
+  CACHE_KEYS,
+  getBorrowersCacheKey,
+  getBorrowerCacheKey,
+  setCachedData,
+  invalidateRelatedCache,
+} from "./cacheService";
 
 async function unwrap<T>(res: { data: T }): Promise<T> {
   return res.data;
@@ -18,11 +27,21 @@ export function getBorrowers(params: {
   page?: number;
   limit?: number;
 }): Promise<BorrowersResponse> {
-  return api.get<BorrowersResponse>("/api/borrowers", { params }).then(unwrap);
+  const cacheKey = getBorrowersCacheKey(params);
+  return cachedApiCall(
+    cacheKey,
+    () => api.get<BorrowersResponse>("/api/borrowers", { params }).then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }
 
 export function getBorrowerById(id: string): Promise<Borrower> {
-  return api.get<Borrower>(`/api/borrowers/${id}`).then(unwrap);
+  const cacheKey = getBorrowerCacheKey(id);
+  return cachedApiCall(
+    cacheKey,
+    () => api.get<Borrower>(`/api/borrowers/${id}`).then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }
 
 export function createBorrower(
@@ -35,10 +54,13 @@ export function updateBorrower(
   id: string,
   data: Partial<Borrower>
 ): Promise<Borrower> {
+  invalidateRelatedCache(`tf_cache_med_borrower_${id}`);
+  invalidateRelatedCache("tf_cache_med_borrowers_");
   return api.put(`/api/borrowers/${id}`, data).then(unwrap);
 }
 
 export function deleteBorrower(id: string): Promise<{ message: string }> {
+  invalidateRelatedCache("tf_cache_med_borrowers_");
   return api.delete(`/api/borrowers/${id}`).then(unwrap);
 }
 
@@ -46,6 +68,10 @@ export function recordPayment(
   id: string,
   data: { month: string; amount: number; status?: string }
 ): Promise<Borrower> {
+  invalidateRelatedCache(`tf_cache_med_borrower_${id}`);
+  invalidateRelatedCache("tf_cache_med_borrowers_");
+  invalidateRelatedCache("tf_cache_med_dashboard_stats");
+  invalidateRelatedCache("tf_cache_med_collections");
   return api.post(`/api/borrowers/${id}/installments`, data).then(unwrap);
 }
 
@@ -78,7 +104,11 @@ export interface Collection {
 }
 
 export function getDashboardStats(): Promise<DashboardStats> {
-  return api.get("/api/analytics/dashboard").then(unwrap);
+  return cachedApiCall(
+    CACHE_KEYS.DASHBOARD_STATS,
+    () => api.get("/api/analytics/dashboard").then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }
 
 export function getDefaulters(params?: {
@@ -86,12 +116,22 @@ export function getDefaulters(params?: {
   page?: number;
   limit?: number;
 }): Promise<{ defaulters: Defaulter[]; total: number }> {
-  return api.get("/api/analytics/defaulters", { params }).then(unwrap);
+  const cacheKey = `tf_cache_med_defaulters_${params?.cityId || 0}_${params?.page || 1}`;
+  return cachedApiCall(
+    cacheKey,
+    () => api.get("/api/analytics/defaulters", { params }).then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }
 
 export function getCollections(params?: {
   cityId?: number;
   months?: number;
 }): Promise<{ collections: Collection[] }> {
-  return api.get("/api/analytics/collections", { params }).then(unwrap);
+  const cacheKey = `tf_cache_med_collections_${params?.cityId || 0}_${params?.months || 6}`;
+  return cachedApiCall(
+    cacheKey,
+    () => api.get("/api/analytics/collections", { params }).then(unwrap),
+    CACHE_DURATIONS.MEDIUM
+  );
 }

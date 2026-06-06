@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminShell, type Screen } from "./components/utilities/utilities";
 import { LoginScreen } from "./components/auth/LoginScreen";
-import { BorrowerManagementScreen } from "./components/borrower/BorrowerManagementScreen";
-import { DashboardScreen } from "./components/analytics/DashboardScreen";
-import { AddBorrowerScreen } from "./components/borrower/AddNewBorrower";
 import { LoadingSpinner } from "./components/utilities/utilities";
 import { getMe, logout } from "./apis/AuthApis";
 import { useSEO } from "./components/seo";
+
+const DashboardScreen = lazy(() => import("./components/analytics/DashboardScreen"));
+const BorrowerManagementScreen = lazy(() => import("./components/borrower/BorrowerManagementScreen"));
+const AddBorrowerScreen = lazy(() => import("./components/borrower/AddNewBorrower"));
 
 const SCREEN_SEO: Record<Screen, { title: string; description: string }> = {
   login: { title: "Login", description: "Secure admin login for TrueFin installment tracking system." },

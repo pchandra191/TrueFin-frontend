@@ -2,6 +2,7 @@ import { FormEvent, useState, useEffect, useCallback, memo } from "react";
 import { Icon } from "../utilities/utilities";
 import { login } from "../../apis/AuthApis";
 import { useSEO } from "../seo";
+import { Link } from "react-router-dom";
 
 export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
@@ -42,12 +43,12 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <section className="login-panel">
         <div className="login-brand">
           <div className="brand-mark">
-            <Icon name="account_balance" />
+            <img src="/favicon-32x32.png" alt="TrueFin" className="brand-logo" />
           </div>
           <h1>Admin Login</h1>
           <p>
-            Securely manage installment plans and borrower accounts for
-            micro-finance operations.
+            Securely manage installment plans, borrowers, and collections
+            with TrueFin.
           </p>
         </div>
 
@@ -70,7 +71,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
           <label className="field">
             <span className="field-row">
-              Password <a href="#support">Forgot Password?</a>
+              Password <Link to="/support">Forgot Password?</Link>
             </span>
             <div className="input-icon">
               <Icon name="lock" />
@@ -107,15 +108,15 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <Icon name="shield" /> AES-256 Military Grade Encryption
           </div>
           <div className="footer-links">
-            <a>Privacy Policy</a>
-            <span /> <a>Security Audit</a>
-            <span /> <a>Support</a>
+            <Link to="/privacy">Privacy Policy</Link>
+            <span /> <Link to="/security">Security Audit</Link>
+            <span /> <Link to="/support">Support</Link>
           </div>
         </footer>
       </section>
-      <button className="support-fab">
+      <Link className="support-fab" to="/support">
         <Icon name="help_outline" /> System Support
-      </button>
+      </Link>
     </main>
   );
 }

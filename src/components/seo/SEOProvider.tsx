@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, memo } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 
 export interface SEOConfig {
   title?: string;
@@ -59,12 +59,17 @@ export function SEOProvider({
     applySEO(merged);
   }, [seoData]);
 
-  const setSEO = (config: SEOConfig) => {
-    setSEOData(prev => ({ ...prev, ...config }));
-  };
+  const setSEO = useCallback((config: SEOConfig) => {
+    setSEOData((previous) => {
+      const next = { ...previous, ...config };
+      return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+    });
+  }, []);
+
+  const contextValue = useMemo(() => ({ setSEO, seoData }), [setSEO, seoData]);
 
   return (
-    <SEOContext.Provider value={{ setSEO, seoData }}>
+    <SEOContext.Provider value={contextValue}>
       {children}
     </SEOContext.Provider>
   );
@@ -173,7 +178,7 @@ function getDefaultSchema(config: SEOConfig & typeof DEFAULTS): Record<string, u
     "@type": "Organization",
     "name": "TrueFin",
     "url": window.location.origin,
-    "logo": `${window.location.origin}/logo.png`,
+    "logo": `${window.location.origin}/logo.webp`,
   };
 
   const websiteSchema: Record<string, unknown> = {

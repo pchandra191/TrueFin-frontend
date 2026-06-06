@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdminShell, type Screen } from "./components/utilities/utilities";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { BorrowerManagementScreen } from "./components/borrower/BorrowerManagementScreen";
@@ -16,6 +17,7 @@ const SCREEN_SEO: Record<Screen, { title: string; description: string }> = {
 };
 
 function App() {
+  const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("login");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [adminName, setAdminName] = useState("Admin User");
@@ -57,6 +59,8 @@ function App() {
 
   const handleNavigate = useCallback((next: Screen) => setScreen(next), []);
 
+  const handleHome = useCallback(() => navigate("/"), [navigate]);
+
   const handleLogout = useCallback(() => {
     logout();
     setAdminName("Admin User");
@@ -83,6 +87,7 @@ function App() {
       onNavigate={handleNavigate}
       adminName={adminName}
       onLogout={handleLogout}
+      onHome={handleHome}
     >
       {screen === "dashboard" && <DashboardScreen onAddLoan={handleAddLoan} />}
       {screen === "borrowers" && (

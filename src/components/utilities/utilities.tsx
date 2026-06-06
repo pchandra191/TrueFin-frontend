@@ -74,18 +74,22 @@ export function AdminShell({
   onNavigate,
   adminName = "Admin User",
   onLogout,
+  onHome,
 }: {
   activeScreen: Screen;
   children: React.ReactNode;
   onNavigate: (screen: Screen) => void;
   adminName?: string;
   onLogout?: () => void;
+  onHome?: () => void;
 }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <h1>TrueFin Admin</h1>
+          <button className="sidebar-home-btn" onClick={onHome} title="Go to homepage">
+            <h1>TrueFin Admin</h1>
+          </button>
           <p>Installment Manager</p>
         </div>
         <nav>

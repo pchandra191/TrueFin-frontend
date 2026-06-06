@@ -10,6 +10,8 @@ import { SEOProvider, useSEO } from "./components/seo";
 const App = lazy(() => import("./App"));
 const UserLogin = lazy(() => import("./components/user/userLogin"));
 const UserTrack = lazy(() => import("./components/user/userTrack"));
+const LandingPage = lazy(() => import("./components/landing/LandingPage"));
+const PublicPage = lazy(() => import("./components/landing/PublicPage"));
 
 function AppRoutes() {
   const location = useLocation();
@@ -18,11 +20,18 @@ function AppRoutes() {
   const getRouteSEO = useCallback(() => {
     const path = location.pathname;
 
-    if (path === "/" || path === "/dashboard") {
+    if (path === "/" || path === "/admin") {
+      if (path === "/") {
+        return {
+          title: "TrueFin - Smart Loan Management for  Lenders",
+          description: "Centralize borrower tracking, collection insights, and loan management. Built for  NBFCs, MFIs, and financial providers.",
+          noindex: false,
+        };
+      }
       return {
-        title: "Dashboard",
+        title: "Admin Dashboard",
         description: "View your installment tracking dashboard with real-time analytics, borrower statistics, and collection data.",
-        noindex: false,
+        noindex: true,
       };
     }
     if (path.startsWith("/track-login")) {
@@ -61,9 +70,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<App />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/admin" element={<App />} />
       <Route path="/track-login" element={<UserLogin />} />
       <Route path="/track/:uniqueId" element={<UserTrack />} />
+      {["platform", "why-truefin", "security", "about", "contact", "support", "privacy", "terms", "compliance"].map((page) => (
+        <Route key={page} path={`/${page}`} element={<PublicPage page={page} />} />
+      ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

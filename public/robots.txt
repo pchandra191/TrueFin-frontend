@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /*?param=
+Crawl-delay: 10
+
+User-agent: Googlebot
+Disallow: /api/
+Disallow: /admin/
+Disallow: /*?param=
+Crawl-delay: 1
+
+Sitemap: https://truefin.com/sitemap.xml
+Sitemap: https://truefin.com/sitemap-index.xml

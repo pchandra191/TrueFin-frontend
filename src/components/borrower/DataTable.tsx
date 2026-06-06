@@ -1,5 +1,6 @@
 import { Borrower } from "../../apis/BorrowerApis";
-import { Icon, Status, BorrowerStatus } from "../utilities/utilities";
+import { Icon, Status, BorrowerStatus, LoadingSpinner } from "../utilities/utilities";
+import { memo, useMemo } from "react";
 
 const PAID_STATUSES = new Set(["paid", "completed", "sd", "partially-defaulter"]);
 
@@ -43,10 +44,62 @@ export function DataTable({
   if (loading) {
     return (
       <section className="table-card">
-        <div className="table-loading">Loading borrowers...</div>
+        <LoadingSpinner message="Loading borrowers..." />
       </section>
     );
   }
+
+  const tableRows = useMemo(() =>
+    rows.map((row, index) => {
+      const status = mapStatus(row.installments);
+      const initials = getInitials(row.name);
+      const tone = getAvatarTone(index);
+      const ipm = row.IPM?.[row.IPM.length - 1] ?? 0;
+
+      return (
+        <tr
+          key={row.uniqueId || row._id}
+          onClick={() => onSelect?.(row)}
+          className={index === 0 && !compact ? "selected" : ""}
+          style={{ cursor: onSelect ? "pointer" : "default" }}
+        >
+          <td>
+            <div className="name-cell">
+              <div className={`avatar ${tone}`}>{initials}</div>
+              <div>
+                <strong>{row.name}</strong>
+                <span>{row.phoneNumber || row.uniqueId}</span>
+              </div>
+            </div>
+          </td>
+          {compact ? (
+            <>
+              <td>{row.borrowerId}</td>
+              <td>₹{ipm.toLocaleString()}</td>
+              <td>
+                <Status status={status} />
+              </td>
+              <td>
+                <button className="icon-button">
+                  <Icon name="visibility" />
+                </button>
+              </td>
+            </>
+          ) : (
+            <>
+              <td>{row.connectorName || "—"}</td>
+              <td>{row.cityId}</td>
+              <td>₹{ipm.toLocaleString()}</td>
+              <td>{row.lastLeft}</td>
+              <td>
+                <Status status={status} />
+              </td>
+            </>
+          )}
+        </tr>
+      );
+    }),
+  [rows, compact, onSelect]);
 
   return (
     <section className="table-card">
@@ -79,61 +132,11 @@ export function DataTable({
               )}
             </tr>
           </thead>
-          <tbody>
-            {rows.map((row, index) => {
-              const status = mapStatus(row.installments);
-              const initials = getInitials(row.name);
-              const tone = getAvatarTone(index);
-              const ipm = row.IPM?.[row.IPM.length - 1] ?? 0;
-
-              return (
-                <tr
-                  key={row.uniqueId || row._id}
-                  onClick={() => onSelect?.(row)}
-                  className={index === 0 && !compact ? "selected" : ""}
-                  style={{ cursor: onSelect ? "pointer" : "default" }}
-                >
-                  <td>
-                    <div className="name-cell">
-                      <div className={`avatar ${tone}`}>{initials}</div>
-                      <div>
-                        <strong>{row.name}</strong>
-                        <span>{row.phoneNumber || row.uniqueId}</span>
-                      </div>
-                    </div>
-                  </td>
-                  {compact ? (
-                    <>
-                      <td>{row.borrowerId}</td>
-                      <td>₹{ipm.toLocaleString()}</td>
-                      <td>
-                        <Status status={status} />
-                      </td>
-                      <td>
-                        <button className="icon-button">
-                          <Icon name="visibility" />
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>{row.connectorName || "—"}</td>
-                      <td>{row.cityId}</td>
-                      <td>₹{ipm.toLocaleString()}</td>
-                      <td>{row.lastLeft}</td>
-                      <td>
-                        <Status status={status} />
-                      </td>
-                    </>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
+          <tbody>{tableRows}</tbody>
         </table>
       </div>
     </section>
   );
 }
 
-export default DataTable;
+export default memo(DataTable);

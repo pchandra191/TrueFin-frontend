@@ -1,12 +1,21 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackLogin } from "../../apis/UserApis";
+import { useSEO } from "../seo";
 
 export default function userLogin() {
   const [uniqueId, setUniqueId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { setSEO } = useSEO();
+
+  useEffect(() => {
+    setSEO({
+      title: "Track Your Loan",
+      description: "Enter your unique ID to track your loan installment history, payment status, and outstanding balance.",
+    });
+  }, [setSEO]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

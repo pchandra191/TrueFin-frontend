@@ -1,6 +1,7 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect, useCallback, memo } from "react";
 import { Icon } from "../utilities/utilities";
 import { login } from "../../apis/AuthApis";
+import { useSEO } from "../seo";
 
 export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
@@ -8,8 +9,16 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setSEO } = useSEO();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    setSEO({
+      title: "Admin Login",
+      description: "Secure admin login for TrueFin installment tracking system. Manage borrowers, loans, and collections.",
+    });
+  }, [setSEO]);
+
+  const handleSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setLoading(true);
@@ -22,7 +31,9 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [email, password, onLogin]);
+
+  const handleShowPassword = useCallback(() => setShowPassword((v) => !v), []);
 
   return (
     <main className="login-screen">
@@ -40,7 +51,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </p>
         </div>
 
-        <form className="login-card" onSubmit={submit}>
+        <form className="login-card" onSubmit={handleSubmit}>
           {error && <div className="form-error">{error}</div>}
 
           <label className="field">
@@ -74,7 +85,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 className="icon-button inside"
                 type="button"
                 aria-label="Show password"
-                onClick={() => setShowPassword((v) => !v)}
+                onClick={handleShowPassword}
               >
                 <Icon name={showPassword ? "visibility_off" : "visibility"} />
               </button>
@@ -109,4 +120,4 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export default LoginScreen;
+export default memo(LoginScreen);

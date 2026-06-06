@@ -1,8 +1,8 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useCallback, memo } from "react";
 import { createBorrower } from "../../apis/BorrowerApis";
 import { Icon, FormPanel, Input, Select } from "../utilities/utilities";
 
-const CITIES = [
+export const CITIES = [
   { id: 1, name: "Shahjahanpur" },
   { id: 2, name: "Bareilly" },
   { id: 3, name: "Tilhar" },
@@ -39,6 +39,8 @@ export function AddBorrowerScreen({
     });
   }, [installmentStartMonth]);
 
+  const totalCommitment = useMemo(() => ipm ? Number(ipm) * 12 : 0, [ipm]);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -66,6 +68,8 @@ export function AddBorrowerScreen({
       setLoading(false);
     }
   }
+
+  const handleCancel = useCallback(() => onCancel(), [onCancel]);
 
   return (
     <main className="content add-borrower">
@@ -182,7 +186,7 @@ export function AddBorrowerScreen({
               <tfoot>
                 <tr>
                   <td colSpan={2}>Total Commitment</td>
-                  <td>₹{ipm ? (Number(ipm) * 12).toLocaleString() : "—"}</td>
+                  <td>₹{totalCommitment ? totalCommitment.toLocaleString() : "—"}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -194,7 +198,7 @@ export function AddBorrowerScreen({
           <button
             className="secondary-button large"
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             Cancel & Reset
           </button>
@@ -212,4 +216,4 @@ export function AddBorrowerScreen({
   );
 }
 
-export default AddBorrowerScreen;
+export default memo(AddBorrowerScreen);
